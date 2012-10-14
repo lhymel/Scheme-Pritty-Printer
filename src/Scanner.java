@@ -20,11 +20,29 @@ class Scanner {
       System.err.println("We fail: " + e.getMessage());
     }
 
-    // TODO: skip white space and comments
-	
+    // skip white space
+    if(bite == 32) // ascii(32) = ' ' 
+    	return null;
+    
+    // skip all comments
+    if(bite == 59) { // ascii(50) = ';' 
+    	// skip all bites after the simicolon until a new line is found
+    	// This feature will help if we decide to read from a file
+    	// instead of the command line
+    	do {
+    		try {
+    			bite = in.read();
+    		} catch (IOException e) {
+    			System.err.println("Skip comment fail due stream close: " + e.getMessage());
+    		}
+    	} while (bite != 10) ; // ascii(10) = NL line feed, new line 
+    	return null;
+    }
+    
+    // End of Stream
     if (bite == -1)
       return null;
-
+    
     char ch = (char) bite;
 	
     // Special characters
@@ -63,7 +81,22 @@ class Scanner {
 
     // String constants
     else if (ch == '"') {
-      // TODO: scan a string into the buffer variable buf
+      // scan a string into the buffer variable buf
+    	buf[0] = (byte) ch;
+    	System.out.println(ch);
+    	int i = 1;
+    	do {
+    		try {
+    			bite = in.read();
+    			buf[i] = (byte) bite;
+    			ch = (char) bite;
+    			System.out.println(ch);
+    		} catch (IOException e) {
+  			  System.err.println("We fail: " + e.getMessage());
+    		}
+    		i++;
+    	} while(ch != '"');
+
       return new StrToken(buf.toString());
     }
 
