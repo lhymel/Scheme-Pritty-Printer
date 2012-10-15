@@ -7,7 +7,7 @@ class Scanner {
   private byte[] buf = new byte[1000];
 
   public Scanner(InputStream i) { in = new PushbackInputStream(i); }
-    
+  
   public Token getNextToken() {
     int bite = -1;
 	
@@ -47,14 +47,14 @@ class Scanner {
 	
     // Special characters
     if (ch == '\'')
-      return new Token(Token.QUOTE);
+      return new Token(TokenType.QUOTE);
     else if (ch == '(')
-      return new Token(Token.LPAREN);
+      return new Token(TokenType.LPAREN);
     else if (ch == ')')
-      return new Token(Token.RPAREN);
+      return new Token(TokenType.RPAREN);
     else if (ch == '.')
       // We ignore the special identifier `...'.
-      return new Token(Token.DOT);
+      return new Token(TokenType.DOT);
 
     // Boolean constants
     else if (ch == '#') {
@@ -70,11 +70,11 @@ class Scanner {
       }
       ch = (char) bite;
       if (ch == 't')
-	return new Token(Token.TRUE);
+	return new Token(TokenType.TRUE);
       else if (ch == 'f')
-	return new Token(Token.FALSE);
+	return new Token(TokenType.FALSE);
       else {
-	System.err.println("Illegal character '" + (char) ch + "' following #");
+	System.err.println("Illegal character '" + ch + "' following #");
 	return getNextToken();
       }
     }
@@ -83,46 +83,75 @@ class Scanner {
     else if (ch == '"') {
       // scan a string into the buffer variable buf
     	buf[0] = (byte) ch;
-    	System.out.println(ch);
     	int i = 1;
     	do {
     		try {
     			bite = in.read();
     			buf[i] = (byte) bite;
     			ch = (char) bite;
-    			System.out.println(ch);
+        		i++;
     		} catch (IOException e) {
   			  System.err.println("We fail: " + e.getMessage());
     		}
-    		i++;
     	} while(ch != '"');
 
-      return new StrToken(buf.toString());
+      return new StrToken(new String(buf));
     }
 
     // Integer constants
     else if (ch >= '0' && ch <= '9') {
       int i = ch - '0';
-      // TODO: scan the number and convert it to an integer
+      int result = 0;
+      
+      do {
+    	  try {
+	    	  result = result * 10 + i;
+	    	  ch = (char) in.read();
+	    	  i = ch - '0';
+    	  } catch (IOException e) {
+    		  System.out.println("Failed to get Integer constants: " + e.getMessage());
+    	  }
+      } while (ch >= '0' && ch <= '9');
 
       // put the character after the integer back into the input
       // in->putback(ch);
-      return new IntToken(i);
+      try {
+          in.unread((byte) ch);
+      } catch (IOException e) {
+    	  System.err.println("We Fail: " + e.getMessage());
+      }
+
+      return new IntToken(result);
     }
 
     // Identifiers
-    else if (ch >= 'A' && ch <= 'Z'
-	     /* or ch is some other valid first character for an identifier */) {
-      // TODO: scan an identifier into the buffer
+    else if (ch >= 'A' && ch <= 'Z' || ch >= 'a' && ch <= 'z') {
+    	buf[0] = (byte) ch;
+    	int i = 1;
+    	do {
+    		try {
+    			bite = in.read();
+    			buf[i] = (byte) bite;
+    			ch = (char) bite;
+        		i++;
+    		} catch (IOException e) {
+  			  System.err.println("We fail: " + e.getMessage());
+    		}
+    	} while(ch >= 'A' && ch <= 'Z' || ch >= 'a' && ch <= 'z');
 
       // put the character after the identifier back into the input
       // in->putback(ch);
-      return new IdentToken(buf.toString());
+    	try {
+            in.unread((byte) ch);
+        } catch (IOException e) {
+      	  System.err.println("We Fail: " + e.getMessage());
+        }
+      return new IdentToken(new String(buf));
     }
 
     // Illegal character
     else {
-      System.err.println("Illegal input character '" + (char) ch + '\'');
+      System.err.println("Illegal input character '" + ch + '\'');
       return getNextToken();
     }
   };
